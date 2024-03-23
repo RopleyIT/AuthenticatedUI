@@ -1,0 +1,17 @@
+﻿@page "/"
+<AuthorizeView>
+    <Authorized>
+        <PageTitle>Home</PageTitle>
+
+        <h1>Welcome to MARS!</h1>
+
+        <p>
+            Please use the navigation menu items on the left nav bar
+            to do exciting and wonderful things . . .
+        </p>
+    </Authorized>
+    <NotAuthorized>
+        You are not logged in.
+        Please <a href="login">login here</a>.
+    </NotAuthorized>
+</AuthorizeView>

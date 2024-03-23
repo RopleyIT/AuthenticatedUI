@@ -1,0 +1,58 @@
+﻿@page "/login"
+@using Authentication
+@using Services
+@inject ProtectedSessionStorage SessionStorage
+@inject Authentication.IAuthenticationService AuthService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+
+<h3>Login</h3>
+<EditForm Model="@authRequest" OnValidSubmit="HandleValidSubmit" >
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <div class="form-group row">
+        <label for="username" class="col-sm-2 col-form-label">Username</label>
+        <div class="col-sm-4">
+            <InputText @bind-Value="authRequest!.UserName" class=" form-control" id="username" placeholder="User name" />
+        </div>
+    </div>
+    <div class="mt-4 form-group row">
+        <label for="password" class="col-sm-2 col-form-label">Password</label>
+        <div class="col-sm-4">
+            <InputText type="password" @bind-Value="authRequest!.Password" class="form-control" id="password"
+                   placeholder="Password" />
+        </div>
+    </div>
+    <div class="mt-4 form-group row">
+        <div class="col-sm-2" />
+        <div class="col-sm-1">
+            <button type="submit" class="btn btn-primary">Login</button>
+        </div>
+        @if(showError)
+        {
+            <div class="col-sm-3"><span style="color: red;">Incorrect name or password. Please try again.</span></div>
+        }
+    </div>
+</EditForm>
+@code 
+{
+    private bool showError = false;
+    private AuthenticationRequest? authRequest = new ();
+    private async void HandleValidSubmit()
+    {
+        JwtAuthStateProvider? stateProvider 
+            = AuthenticationStateProvider as JwtAuthStateProvider;
+        if (stateProvider != null && await stateProvider.Login(authRequest))
+            NavigationManager.NavigateTo("/");
+        else
+            showError = true;
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        var authProvider = AuthenticationStateProvider as JwtAuthStateProvider;
+        authProvider?.ConnectionEstablished();
+        return base.OnAfterRenderAsync(firstRender);
+    }
+
+}
