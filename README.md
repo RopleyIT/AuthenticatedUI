@@ -3,7 +3,7 @@ This is an example of how to secure a Blazor server application using Json Web T
 
 Based on the Microsoft template example (`Counter.razor` and `Weather.razor` content pages), it adds a login page and a navbar logout button.
 A class library that issues a JWT token if the user's credentials are valid is included, though this has a mock authentication check method
-that should be replaced by something that uses a real aithentication provider.
+that should be replaced by something that uses a real authentication provider.
 
 Pages are secured using the `<AuthorizeView>`, `<Authorized>` and `<NotAuthorized>` tags, which in turn rely on the `AuthenticationStateProvider`
 class, all of which is standard built-in functionality for Blazor. However, a custom `JwtAuthStateProvider` class is derived from the inbuilt
