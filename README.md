@@ -1,4 +1,4 @@
-# Authenticated Blazor App
+# JSON Web Token Authenticated Blazor App
 This is an example of how to secure a Blazor server application using Json Web Tokens. The application is built using .NET 8.
 
 Based on the Microsoft template example (`Counter.razor` and `Weather.razor` content pages), it adds a login page and a navbar logout button.
