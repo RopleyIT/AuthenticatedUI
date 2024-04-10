@@ -8,9 +8,7 @@
 
 <AuthorizeView>
     <Authorized>
-        <PageTitle>Home</PageTitle>
-
-        <h1>Welcome! You are now logged in.</h1>
+        <h3 id="banner">Welcome! You are now logged in.</h3>
 
         <p>
             Please use the navigation menu items on the left nav bar
@@ -18,7 +16,7 @@
         </p>
     </Authorized>
     <NotAuthorized>
-        <h3>Login</h3>
+        <h3 id="banner">Login</h3>
         <EditForm Context="formContext" Model="@authRequest" OnValidSubmit="HandleValidSubmit">
             <DataAnnotationsValidator />
             <ValidationSummary />
@@ -38,11 +36,11 @@
             <div class="mt-4 form-group row">
                 <div class="col-sm-2" />
                 <div class="col-sm-1">
-                    <button type="submit" class="btn btn-primary">Login</button>
+                    <button id="loginsubmit" type="submit" class="btn btn-primary">Login</button>
                 </div>
                 @if (showError)
                 {
-                    <div class="col-sm-3"><span style="color: red;">Incorrect name or password. Please try again.</span></div>
+                    <div class="col-sm-3"><span id="loginError" style="color: red;">Incorrect name or password. Please try again.</span></div>
                 }
             </div>
         </EditForm>

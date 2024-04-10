@@ -1,0 +1,217 @@
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using OpenQA.Selenium;
+using OpenQA.Selenium.Chrome;
+using OpenQA.Selenium.Support.UI;
+using System.Diagnostics;
+using System.IO;
+
+namespace AuthenticatedUITests;
+
+[TestClass]
+public class LoginTests
+{
+    public static bool Headless = true; // Set false to see tests
+    public readonly static string SiteUrl = "https://localhost:5443";
+    public static readonly string WorkingDirectory 
+        = @"..\..\..\..\AuthenticatedUI";
+    IWebDriver? driver = null;
+    WebDriverWait? wait = null;
+    static Process? kestrelServer = null;
+
+    [ClassInitialize]
+    public async static Task ClassSetup(TestContext ctx)
+    {
+        // Make the test runner launch the Kestrel web server hosting
+        // the Blazor application. We are then able to automate the
+        // browser to test it.
+
+        ProcessStartInfo startInfo = new()
+        {
+            CreateNoWindow = true,
+            UseShellExecute = true,
+            FileName = "dotnet",
+            Arguments = $"run --urls {SiteUrl}",
+            WorkingDirectory = WorkingDirectory
+        };
+        kestrelServer = Process.Start(startInfo);
+        await Task.Delay(6000);
+    }
+
+    [ClassCleanup]
+    public static void ClassTearDown()
+    {
+        // Shut down the Kestrel server after tests have
+        // been run. Prevents lock-ups when trying to
+        // rebuild the application between tests.
+
+        if(kestrelServer != null)
+        {
+            kestrelServer.Kill(true);
+            kestrelServer.WaitForExit();
+        }
+    }
+
+    /// <summary>
+    /// Helper function to ensure all page navigations
+    /// wait while the blazor server in debug mode
+    /// renders the new page layout
+    /// </summary>
+    /// <param name="url">The URL to navigate to</param>
+    /// <returns>A task to await</returns>
+    
+    private async Task GoToUrl(string url)
+    {
+        driver?.Navigate().GoToUrl(url);
+        await Task.Delay(1000);
+    }
+
+    [TestInitialize]
+    public async Task Setup()
+    {
+        ChromeOptions options = new ChromeOptions();
+        if(Headless)
+            options.AddArgument("--headless=new");
+        driver = new ChromeDriver(options);
+        wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
+        await GoToUrl(SiteUrl);
+    }
+
+    [TestCleanup]
+    public void TearDown()
+    {
+        if(driver != null)
+            driver.Quit();
+    }
+
+    [TestMethod]
+    public void DisplayLoginPage()
+    {
+        var loginTitle = driver?.FindElement(By.TagName("h3"));
+        Assert.AreEqual("Login", loginTitle?.Text);
+    }
+
+    [TestMethod]
+    public async Task ValidCredentialsLogsIn()
+    {
+        var userNameElement = driver?.FindElement(By.Id("username"));
+        var passwordElement = driver?.FindElement(By.Id("password"));
+        var submitButton = driver?.FindElement(By.Id("loginsubmit"));
+
+        // Fill in name and password, then click the login button
+
+        userNameElement?.SendKeys("fred");
+        passwordElement?.SendKeys("fredpw");
+        submitButton?.Click();
+
+        // Give Blazor time to load the next page, then verify
+        // we arrived at the correct logged in page content
+
+        await Task.Delay(1000);
+        var heading = driver?.FindElement(By.Id("banner"));
+        Assert.AreEqual("Welcome! You are now logged in.", heading?.Text);
+
+        // Validate that the additional nav menu items
+        // have been shown for authenticated users
+
+        var navElements = driver?.FindElements(By.XPath("//a")).Select(e => e.Text);
+        Assert.IsNotNull(navElements);
+        Assert.IsTrue(navElements.Any(e => e == "Counter"));
+        Assert.IsTrue(navElements.Any(e => e == "Weather"));
+        Assert.IsTrue(navElements.Any(e => e == "Logout"));
+    }
+
+    [TestMethod]
+    public async Task InvalidValidCredentialsRejected()
+    {
+        var userNameElement = driver?.FindElement(By.Id("username"));
+        var passwordElement = driver?.FindElement(By.Id("password"));
+        var submitButton = driver?.FindElement(By.Id("loginsubmit"));
+
+        // Try logging in with bad credentials
+
+        userNameElement?.SendKeys("fred");
+        passwordElement?.SendKeys("xyzzy");
+        submitButton?.Click();
+        await Task.Delay(1000);
+
+        // Confirm that the application remains on
+        // the login page, and that the error message
+        // has been displayed.
+
+        var heading = driver?.FindElement(By.Id("banner"));
+        Assert.AreEqual("Login", heading?.Text);
+        var errorElement = driver?.FindElement(By.Id("loginError"));
+        Assert.AreEqual("Incorrect name or password. Please try again.", errorElement?.Text);
+
+        // Confirm that none of the logged in navigation
+        // menu items has been made visible
+
+        var navElements = driver?.FindElements(By.XPath("//a")).Select(e => e.Text);
+        Assert.IsNotNull(navElements);
+        Assert.IsFalse(navElements.Any(e => e == "Counter"));
+        Assert.IsFalse(navElements.Any(e => e == "Weather"));
+        Assert.IsFalse(navElements.Any(e => e == "Logout"));
+    }
+
+    [TestMethod]
+    public async Task CanLogout()
+    {
+        // First login so that we can then try logging out
+
+        var userNameElement = driver?.FindElement(By.Id("username"));
+        var passwordElement = driver?.FindElement(By.Id("password"));
+        var submitButton = driver?.FindElement(By.Id("loginsubmit"));
+        userNameElement?.SendKeys("fred");
+        passwordElement?.SendKeys("fredpw");
+        submitButton?.Click();
+        await Task.Delay(1000);
+
+        // Check that we departed from the login page
+
+        var heading = driver?.FindElement(By.Id("banner"));
+        Assert.AreEqual("Welcome! You are now logged in.", heading?.Text);
+        
+        // Find and click the logout link in the nav bar
+
+        var logoutElement = driver?
+            .FindElements(By.XPath("//a"))
+            .First(e => e.Text == "Logout");
+        Assert.IsNotNull(logoutElement);
+        logoutElement.Click();
+        await Task.Delay(1000);
+
+        // Check that we returned to the login page
+
+        heading = driver?.FindElement(By.Id("banner"));
+        Assert.AreEqual("Login", heading?.Text);
+
+        // Confirm that none of the logged in navigation
+        // menu items is visible any longer
+
+        var navElements = driver?.FindElements(By.XPath("//a")).Select(e => e.Text);
+        Assert.IsNotNull(navElements);
+        Assert.IsFalse(navElements.Any(e => e == "Counter"));
+        Assert.IsFalse(navElements.Any(e => e == "Weather"));
+        Assert.IsFalse(navElements.Any(e => e == "Logout"));
+    }
+
+    [DataTestMethod]
+    [DataRow("/counter")]
+    [DataRow("/weather")]
+    public async Task CannotVisitAuthorizedPages(string path)
+    {
+        driver?.Navigate().GoToUrl($"{SiteUrl}{path}");
+        await Task.Delay(1000);
+        var articleElement = driver?.FindElement(By.TagName("article"));
+        Assert.IsNotNull(articleElement);
+        Assert.AreEqual("You are not logged in. Please login here.", articleElement.Text);
+    }
+
+    [TestMethod]
+    public async Task NonExistentPagesReturn404()
+    {
+        driver?.Navigate().GoToUrl($"{SiteUrl}/xyzzy");
+        await Task.Delay(1000);
+        Assert.IsTrue(driver?.PageSource.Contains("404"));
+    }
+}
