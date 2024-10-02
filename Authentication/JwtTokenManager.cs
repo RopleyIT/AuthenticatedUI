@@ -20,7 +20,7 @@ namespace Authentication
                     new Claim(JwtRegisteredClaimNames.Name, userName),
                     new Claim(JwtRegisteredClaimNames.GivenName, givenName)
                 }),
-                Expires = DateTime.UtcNow.AddMinutes(45),
+                Expires = DateTime.UtcNow.AddSeconds(15),
                 Issuer = issuer,
                 Audience = audience,
                 SigningCredentials = new SigningCredentials

@@ -56,6 +56,15 @@
             = AuthenticationStateProvider as JwtAuthStateProvider;
         if (stateProvider != null && await stateProvider.Login(authRequest))
         {
+            // If we get here, the call to Login above will have checked
+            // the user's name and password, and if valid will have issued
+            // a JWT token for them and stored it into the protected
+            // session storage of the user's browser. Hence the NavigateTo
+            // call below will permit us to navigate to a protected page.
+            // Note that the reconstruction of the authrequest below is
+            // to wipe out the name and password in the input form so
+            // they don't persist in the login page.
+
             authRequest = new(); // Clear name and password
             NavigationManager.NavigateTo("/");
         }

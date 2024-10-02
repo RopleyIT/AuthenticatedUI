@@ -157,7 +157,7 @@ public class JwtAuthStateProvider : AuthenticationStateProvider
             IssuerSigningKey = new SymmetricSecurityKey(jwtSecretKey),
             ValidateIssuerSigningKey = true,
             ValidateLifetime = true,
-            ClockSkew = TimeSpan.Zero
+            ClockSkew = TimeSpan.FromSeconds(5)
         };
         TokenValidationResult result = await handler
             .ValidateTokenAsync(jwt, validationParams);

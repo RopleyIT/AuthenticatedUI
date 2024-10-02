@@ -1,4 +1,10 @@
-﻿@inherits LayoutComponentBase
+﻿@using System.Timers
+@using AuthenticatedUI.Services
+@inherits LayoutComponentBase
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 
 <div class="page">
     <div class="sidebar">
@@ -17,3 +23,43 @@
     <a href="" class="reload">Reload</a>
     <a class="dismiss">🗙</a>
 </div>
+
+@code {
+    // Implementation of 5 minute disuse timeout logic
+
+    private Timer? timer;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Set timeout delay to 5 minutes
+            timer = new Timer
+                {
+                    Interval = 5 * 60 * 1000,
+                    AutoReset = false
+                };
+            timer.Elapsed += UpdateTimer;
+            await JSRuntime.InvokeVoidAsync
+                ("timeOutCall", DotNetObjectReference.Create(this));
+        }
+    }
+
+    [JSInvokable]
+    public void TimerInterval()
+    {
+        timer?.Stop();
+        timer?.Start();
+    }
+
+    private void UpdateTimer(object? src, ElapsedEventArgs elapsedEventArgs)
+    {
+        InvokeAsync(async () =>
+        {
+            var authProvider = AuthenticationStateProvider as JwtAuthStateProvider;
+            if(authProvider != null)
+                await authProvider.Logout();
+            NavigationManager.NavigateTo("");
+        });
+    }
+}

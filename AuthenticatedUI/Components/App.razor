@@ -14,6 +14,16 @@
 
 <body>
     <Routes @rendermode="InteractiveServer" />
+    <script>
+        function timeOutCall(dotNetHelper) {
+            document.onmousemove = resetTimeDelay;
+            document.onkeydown = resetTimeDelay;
+
+            function resetTimeDelay() {
+                dotNetHelper.invokeMethodAsync("TimerInterval");
+            }
+        }
+    </script>
     <script src="_framework/blazor.web.js"></script>
 </body>
 
