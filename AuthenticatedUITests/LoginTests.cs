@@ -1,6 +1,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
+using OpenQA.Selenium.Interactions;
 using OpenQA.Selenium.Support.UI;
 using System.Diagnostics;
 using System.IO;
@@ -10,16 +11,16 @@ namespace AuthenticatedUITests;
 [TestClass]
 public class LoginTests
 {
-    public static bool Headless = true; // Set false to see tests
+    const bool Headless = true; // Set false to see tests
     public readonly static string SiteUrl = "https://localhost:5443";
     public static readonly string WorkingDirectory 
         = @"..\..\..\..\AuthenticatedUI";
-    IWebDriver? driver = null;
-    WebDriverWait? wait = null;
+    ChromeDriver? driver = null;
+    //WebDriverWait? wait = null;
     static Process? kestrelServer = null;
 
     [ClassInitialize]
-    public async static Task ClassSetup(TestContext ctx)
+    public async static Task ClassSetup(TestContext _)
     {
         // Make the test runner launch the Kestrel web server hosting
         // the Blazor application. We are then able to automate the
@@ -68,20 +69,20 @@ public class LoginTests
     [TestInitialize]
     public async Task Setup()
     {
-        ChromeOptions options = new ChromeOptions();
+        ChromeOptions options = new();
         if(Headless)
-            options.AddArgument("--headless=new");
+            // NOTE: Because of a bug in the Chrome 129 code, the
+            // following will display a blank window for each test
+            // until 130 is released. Fix merged at Google, but
+            // not released until 130 comes out.
+            options.AddArgument("--headless");
         driver = new ChromeDriver(options);
-        wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
+        //wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
         await GoToUrl(SiteUrl);
     }
 
     [TestCleanup]
-    public void TearDown()
-    {
-        if(driver != null)
-            driver.Quit();
-    }
+    public void TearDown() => driver?.Quit();
 
     [TestMethod]
     public void DisplayLoginPage()
@@ -205,6 +206,87 @@ public class LoginTests
         var articleElement = driver?.FindElement(By.TagName("article"));
         Assert.IsNotNull(articleElement);
         Assert.AreEqual("You are not logged in. Please login here.", articleElement.Text);
+    }
+
+    [TestMethod]
+    public async Task InactivityCausesLogout()
+    {
+        var userNameElement = driver?.FindElement(By.Id("username"));
+        var passwordElement = driver?.FindElement(By.Id("password"));
+        var submitButton = driver?.FindElement(By.Id("loginsubmit"));
+
+        // Try logging in with bad credentials
+
+        userNameElement?.SendKeys("fred");
+        passwordElement?.SendKeys("fredpw");
+        submitButton?.Click();
+        await Task.Delay(1000);
+
+        // Check that we departed from the login page
+
+        var heading = driver?.FindElement(By.Id("banner"));
+        Assert.AreEqual("Welcome! You are now logged in.", heading?.Text);
+
+        // Wait for the timeout period, which has been set to
+        // 10 seconds in appsettings.config
+
+        await Task.Delay(11 * 1000);
+
+        // Confirm that the application has logged the
+        // user out because of inactivity on the page
+
+        heading = driver?.FindElement(By.Id("banner"));
+        Assert.AreEqual("Login", heading?.Text);
+
+        // Confirm that none of the logged in navigation
+        // menu items has been left visible
+
+        var navElements = driver?.FindElements(By.XPath("//a")).Select(e => e.Text);
+        Assert.IsNotNull(navElements);
+        Assert.IsFalse(navElements.Any(e => e == "Counter"));
+        Assert.IsFalse(navElements.Any(e => e == "Weather"));
+        Assert.IsFalse(navElements.Any(e => e == "Logout"));
+    }
+
+    [TestMethod]
+    public async Task InputActivityPreventsTimeOut()
+    {
+        var userNameElement = driver?.FindElement(By.Id("username"));
+        var passwordElement = driver?.FindElement(By.Id("password"));
+        var submitButton = driver?.FindElement(By.Id("loginsubmit"));
+
+        // Try logging in with bad credentials
+
+        userNameElement?.SendKeys("fred");
+        passwordElement?.SendKeys("fredpw");
+        submitButton?.Click();
+        await Task.Delay(1000);
+
+        // Check that we departed from the login page
+
+        var heading = driver?.FindElement(By.Id("banner"));
+        Assert.AreEqual("Welcome! You are now logged in.", heading?.Text);
+
+        // Wait for the timeout period, which has been set to
+        // 10 seconds in appsettings.config
+
+        await Task.Delay(7 * 1000);
+
+        // Wiggle the mouse
+
+        new Actions(driver)
+        .MoveByOffset(100, 100)
+        .Perform();
+
+        // Wait beyond the original timeout period, nine
+        // seconds of which has already elapsed
+
+        await Task.Delay(5 * 1000);
+
+        // Confirm we have not left the landing page
+
+        heading = driver?.FindElement(By.Id("banner"));
+        Assert.AreEqual("Welcome! You are now logged in.", heading?.Text);
     }
 
     [TestMethod]

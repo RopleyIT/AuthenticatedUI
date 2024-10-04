@@ -26,6 +26,7 @@ public class JwtAuthStateProvider : AuthenticationStateProvider
     private readonly byte[] jwtSecretKey;
     private string? currentToken;
     private bool connectionEstablished;
+    private readonly int timeOut;
 
     /// <summary>
     /// Constructor. Manages UI authentication state using a JWT token
@@ -52,10 +53,20 @@ public class JwtAuthStateProvider : AuthenticationStateProvider
         currentToken = null;
         sessionStorage = browserStorage;
         authService = authSvc;
+        string? strTimeOut = config["InactivityTimeOut"];
+        if (strTimeOut == null || !int.TryParse(strTimeOut, out timeOut))
+            timeOut = 300; // Default to five minutes (300 seconds)
         string? key = config["JWTSecretKey"] 
             ?? throw new ArgumentException("Config contains no JWT secret key");
         jwtSecretKey = Encoding.ASCII.GetBytes(key);
     }
+
+    /// <summary>
+    /// Timeout period used in browser before inactivity causes
+    /// an automatic logout. This value is set in appsettings.json
+    /// </summary>
+
+    public int InactivityTimeOut => timeOut;
 
     /// <summary>
     /// Attempt to log this user into the application. If

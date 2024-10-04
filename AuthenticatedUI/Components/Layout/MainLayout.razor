@@ -1,5 +1,6 @@
 ﻿@using System.Timers
 @using AuthenticatedUI.Services
+
 @inherits LayoutComponentBase
 
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -33,10 +34,16 @@
     {
         if (firstRender)
         {
-            // Set timeout delay to 5 minutes
+            // Retrieve the page inactivity timeout period from
+            // the configuration file appsettings.json. Defaults
+            // to 5 minutes (300 seconds) if not found there.
+
+            var authProvider = AuthenticationStateProvider as JwtAuthStateProvider;
+            int timeOut = authProvider?.InactivityTimeOut ?? 300;
+
             timer = new Timer
                 {
-                    Interval = 5 * 60 * 1000,
+                    Interval = timeOut * 1000,
                     AutoReset = false
                 };
             timer.Elapsed += UpdateTimer;
