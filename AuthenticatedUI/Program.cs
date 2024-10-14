@@ -15,7 +15,7 @@ builder.Services.AddScoped<ProtectedSessionStorage>();
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<AuthenticationStateProvider, JwtAuthStateProvider>();
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
-
+builder.Services.AddScoped<IAuthenticationProvider, DummyAuthenticationProvider>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

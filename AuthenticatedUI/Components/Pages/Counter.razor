@@ -1,5 +1,5 @@
 ﻿@page "/counter"
-<AuthorizeView>
+<AuthorizeView Roles="admin, subadmin">
     <Authorized>
         <PageTitle>Counter</PageTitle>
 
@@ -10,7 +10,7 @@
         <button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
     </Authorized>
     <NotAuthorized>
-        You are not logged in.
+        Either you are not logged in, or you do not have permission to view this page..
         Please <a href="">login here</a>.
     </NotAuthorized>
 </AuthorizeView>
