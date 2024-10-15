@@ -5,6 +5,7 @@ using OpenQA.Selenium.Interactions;
 using OpenQA.Selenium.Support.UI;
 using System.Diagnostics;
 using System.IO;
+using System.Xml.Linq;
 
 namespace AuthenticatedUITests;
 
@@ -100,8 +101,8 @@ public class LoginTests
 
         // Fill in name and password, then click the login button
 
-        userNameElement?.SendKeys("fred");
-        passwordElement?.SendKeys("fredpw");
+        userNameElement?.SendKeys("admin");
+        passwordElement?.SendKeys("adminpw");
         submitButton?.Click();
 
         // Give Blazor time to load the next page, then verify
@@ -334,5 +335,32 @@ public class LoginTests
 
         var element = driver?.FindElement(By.TagName("h1"));
         Assert.AreEqual("Counter", element?.Text);
+    }
+
+    [DataTestMethod]
+    [DataRow("admin", "adminpw", true)]
+    [DataRow("subadmin", "subadminpw", false)]
+    [DataRow("fred", "fredpw", false)]
+    public async Task NavBarAuthorizedViewHidesWeatherPage
+        (string name, string pass, bool result)
+    {
+        var userNameElement = driver?.FindElement(By.Id("username"));
+        var passwordElement = driver?.FindElement(By.Id("password"));
+        var submitButton = driver?.FindElement(By.Id("loginsubmit"));
+
+        // Fill in name and password, then click the login button
+
+        userNameElement?.SendKeys(name);
+        passwordElement?.SendKeys(pass);
+        submitButton?.Click();
+        await Task.Delay(1000);
+
+        // Validate the nav bar buttons
+
+        var weatherNavElement = driver?
+        .FindElements(By.XPath("//a"))
+        .FirstOrDefault(e => e.Text == "Weather");
+
+        Assert.AreEqual(result, weatherNavElement != null);
     }
 }
