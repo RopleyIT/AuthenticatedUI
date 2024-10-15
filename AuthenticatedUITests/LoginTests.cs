@@ -297,4 +297,42 @@ public class LoginTests
         await Task.Delay(1000);
         Assert.IsTrue(driver?.PageSource.Contains("404"));
     }
+
+    [DataTestMethod]
+    [DataRow("admin", "adminpw")]
+    [DataRow("subadmin", "subadminpw")]
+    public async Task SpecifiedRolesCanVisitRoleProtectedPages(string name, string pass)
+    {
+        var userNameElement = driver?.FindElement(By.Id("username"));
+        var passwordElement = driver?.FindElement(By.Id("password"));
+        var submitButton = driver?.FindElement(By.Id("loginsubmit"));
+
+        // Fill in name and password, then click the login button
+
+        userNameElement?.SendKeys(name);
+        passwordElement?.SendKeys(pass);
+        submitButton?.Click();
+        await Task.Delay(1000);
+
+        // Check that we departed from the login page
+
+        var heading = driver?.FindElement(By.Id("banner"));
+        Assert.AreEqual("Welcome! You are now logged in.", heading?.Text);
+
+        // Navigate to the role-protected /counter page
+
+        // Find and click the logout link in the nav bar
+
+        var counterNavElement = driver?
+            .FindElements(By.XPath("//a"))
+            .First(e => e.Text == "Counter");
+        Assert.IsNotNull(counterNavElement);
+        counterNavElement.Click();
+        await Task.Delay(1000);
+
+        // Check that we have role-permitted content on the page
+
+        var element = driver?.FindElement(By.TagName("h1"));
+        Assert.AreEqual("Counter", element?.Text);
+    }
 }
