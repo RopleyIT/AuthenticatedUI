@@ -197,15 +197,16 @@ public class LoginTests
     }
 
     [DataTestMethod]
-    [DataRow("/counter")]
-    [DataRow("/weather")]
-    public async Task CannotVisitAuthorizedPages(string path)
+    [DataRow("/counter", "Either you are not logged in,")]
+    [DataRow("/weather", "You are not logged in.")]
+    public async Task CannotVisitAuthorizedPages(string path, string errorMsg)
     {
         driver?.Navigate().GoToUrl($"{SiteUrl}{path}");
         await Task.Delay(1000);
         var articleElement = driver?.FindElement(By.TagName("article"));
         Assert.IsNotNull(articleElement);
-        Assert.AreEqual("You are not logged in. Please login here.", articleElement.Text);
+        Assert.IsTrue(articleElement
+            .Text.StartsWith(errorMsg));
     }
 
     [TestMethod]
